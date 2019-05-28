@@ -1,0 +1,190 @@
+用流收集数据
+{
+    用Collectors类创建和使用收集器
+    将数据流归为一个值
+    汇总：归约的特殊情况
+    数据分组和分区
+    开发自己的自定义收集器
+}
+
+*收集器简介
+    函数式编程相对于指令式编程的一个主要优势：只需要指出希望的结果——“做什么”，而不用操心执行的步骤——“怎么做”。传递给collect方法的参数是
+    Collector接口的一个实现，也就是给Stream中元素做汇总的方法。toList是说“按顺序给每个元素生成一个列表”；groupBy说的是“生成一个Map，key
+    是分组得到的”
+    要是做多级分组，指令式和函数式之间的区别就会更加明显：由于需要好多层嵌套循环和条件，指令式代码很快就变得难以阅读、更难维护、更难修改。相比
+    之下，函数式版本只要再加上一个收集器就可以轻松增强功能。
+
+    -收集器用作高级归约
+    对流调用collect方法对流中的元素触发一个归约操作（由Collector来参数化）。
+    一般来说，Collector会对元素应用一个转换函数（很多时候是不体现任何效果的恒等转换，例如toList），并将结果累积在一个数据结构中，从而产生这一
+    过程的最终输出。
+
+    -预定义收集器
+    从Collectors类提供的工厂方法（例如groupingBy）创建的收集器，它们主要提供了三大功能：
+    。将流元素归约和汇总为一个值
+    。元素分组
+    。元素分区
+
+*归约和汇总
+
+    -收集和归约
+    Stream接口的collect和reduce方法有什么区别，两种方法通常会获得相同的结果。例如，可以像下面这样使用reduce方法来实现toList Collector所
+    做的工作：
+    Stream<Integer> stream = Arrays.asList(1, 2, 3, 4, 5, 6).stream();
+            List<Integer> numbers = stream.reduce(new ArrayList<Integer>(),
+                    (List<Integer> l, Integer e) -> {
+                        l.add(e);
+                        return l;
+                    },
+                    (List<Integer> l1, List<Integer> l2) -> {
+                        l1.addAll(l2);
+                        return l1;
+                    });
+    这个解决方案有两个问题：一个语义问题和一个实际问题。语义问题在于，reduce方法旨在把两个值结合起来生成一个新的值，它是一个不可变的归约。与此
+    相反，collect方法的设计就是要改变容器，从而累积要输出的结果。这意味着，上面代码片段是在滥用reduce方法，因为它在原地改变了作为累加器的List
+    以错误的语义使用reduce方法还会造成一个实际问题：这个归约过程不能并行工作，因为由多个线程并发修改同一个数据结构可能会破坏List本身。在这种
+    情况下，如果想要线程安全，就需要每次分配一个新的List，而对象分配又会影响性能。这就是collect方法特别适合表达可变容器上的归约的原因，更关键
+    的是它适合并行操作。
+
+    --------------------------------------------------------------------------------------
+    Collectors类的静态工厂方法
+    工厂方法            返回类型                用于
+    --------------------------------------------------------------------------------------
+    toList          List<T>             把流中所有项目收集到一个List
+    --------------------------------------------------------------------------------------
+    toSet           Set<T>              把流中所有项目收集到一个Set,删除重复项
+    ---------------------------------------------------------------------------------------
+    toCollection    Collection<T>       把流中所有项目收集到给定的供应源创建集合
+    ---------------------------------------------------------------------------------------
+    counting        Long                计算流中元素的个数
+    --------------------------------------------------------------------------------------
+    summingInt      Integer             对流中项目的一个整数属性求和
+    ---------------------------------------------------------------------------------------
+    averagingInt    Double              计算流中项目Integer属性的平均值
+    ---------------------------------------------------------------------------------------
+    summarizingInt  IntSummaryStatistics 收集关于流中项目Integer属性的统计值，最大、最小、平均值...
+    ---------------------------------------------------------------------------------------
+    joining         String              连接对流中每个项目调用toString方法所生成的字符串
+    ---------------------------------------------------------------------------------------
+    maxBy           Optional<T>         一个包裹了流中按指定比较器选出的最大元素的Optional
+    ---------------------------------------------------------------------------------------
+    minBy           Option<T>
+    ---------------------------------------------------------------------------------------
+    reducing        归约操作产生的类型     从一个作为累加器的初始值开始，利用BinaryOperator与流中元素逐个结合，从而将流归约为单个值
+    ---------------------------------------------------------------------------------------
+    collectionAndThen 转换函数返回的类型     包裹另外一个收集器，对其结果应用转换函数
+    ---------------------------------------------------------------------------------------
+    groupingBy      Map<K,List<T>>      根据项目的一个属性值对流中的项目做分组，并将属性值作为key
+    ---------------------------------------------------------------------------------------
+    partitioningBy  Map<Boolean,List<T>> 根据对流中每个项目应用谓词的结果来对项目进行分区
+
+
+
+*收集接口
+    Collector接口包含了一系列方法，为实现具体的归约操作（即收集器）提供了范本。
+
+    public interface Collector<T, A, R> {
+        Supplier<A> supplier();
+        BiConsumer<A, T> accumulator();
+        Function<A, R> finisher();
+        BinaryOperator<A> combiner();
+        Set<Characteristics> characteristics();
+    }
+    -T是流中要收集的项目的泛型
+    -A是累加器的类型，累加器是在收集过程中用于积累部分结果的对象
+    -R是收集操作得到的对象（通常但不一定是集合）的类型
+    例如，可以实现一个ToListCollector<T>类，将Stream<T>中的所有元素收集到一个List<T>里，签名如下：
+    public class ToListCollector<T> implements Collector<T, List<T>, List<T>>
+    这里用于累积的对象也将是收集过程最终的结果
+
+    。理解Collector接口声明的方法
+    通过分析，前四个方法都会返回一个会被collect方法调用的函数，而第五个方法characteristics则提供了一系列特征，也就是一个提示列表，告诉collect
+    方法在执行归约操作的适合可以应用哪些优化（比如并行）
+
+    -建立新的结果容器：supplier方法
+    supplier方法必须返回一个结果为空的Supplier，也就是一个无参数函数，在调用时他会创建一个空的累加器实例，供数据收集过程使用。很明显，对于累
+    加器本身作为结果返回的收集器，比如ToListCollector，在对空流执行操作的适合，这个空的累加器也代表了收集过程的结果。
+    public Supplier<List<T>> supplier() {
+        return ArrayList::new;
+    }
+
+    -将元素添加到容器：accumulator方法
+    accumulator方法会返回执行归约操作的函数。当遍历到流中的第n个元素时，这个函数执行时会由两个参数：保存归约结果的累加器（已收集了n-1个项目）
+    还有第n个元素本身。该函数将返回void，因为累加器是原位更新，即函数的执行改变了它的内部状态以体现遍历元素的效果。
+    public BiConsumer<List<T>, T> accumulator() {
+        return List::add;
+    }
+
+    -对结果容器应用最终转换：finisher方法
+    在遍历完流后，finisher方法必须返回在累积过程的最后要调用的一个函数，以便将累加器对象转换为整个集合操作的最终结果。通常，像ToListCollector
+    的情况一样，累加器对象恰好复合预期的最终结果，因此无需进行转换。所以finisher方法只需返回identity函数：
+    public Function<List<T>, List<T>> finisher() {
+        return Function.identity();
+    }
+
+    这三个方法已经足以对流进行顺序归约。实践中的实现细节可能还要复杂一点，一方面是因为流的延迟性质，可能在collect操作之前还需要完成其他中间操作
+    的流水线，另一方面则是理论上可能要进行并行归约。
+
+    -合并两个结果容器：combiner方法
+    四个方法中的最后一个——combiner方法会返回一个供归约操作使用的函数，它定义了流的各个子部分进行并行处理时，各个子部分归约所得到的累加器要如何
+    合并。对于toList而言，这个方法的实现非常简单，只要把从流的第二部分收集到的项目列表加到遍历第一部分时得到的列表后面就行了：
+    public BinaryOperator<List<T>> combiner() {
+        return (list1, list2) -> {
+            list1.addAll(list2);
+            return list1;
+        }
+    }
+    有了这第四个方法，就可以对流进行并行归约了。它会用到Java7中引入的分支/合并框架和Spliterator抽象。
+
+    -characteristics方法
+    最后一个方法——characteristics会返回一个不可变的Characteristics集合，它定义了收集器的行为——尤其是关于流是否可以并行归约，以及可以使用
+    哪些优化的提示。Characteristics是一个包含三个项目的枚举。
+    -UNORDERED——归约结果不受流中项目的遍历和累积顺序的影响
+    -CONCURRENT——accumulator函数可以从多个线程同时调用，且该收集器可以并行归约流。如果收集器没有标记为UNORDERED，那它仅在用于无序数据源时
+    才可以并行归约。
+    -IDENTITY_FINISH——这表明完成其方法返回的函数是一个恒等函数，可以跳过。这种情况下，累加器对象将会直接用作归约过程的最终结果。这意味着，将
+    累加器A不加检查地转换为结果R是安全的。
+
+    目前为止，ToListCollector是IDENTITY_FINISH的，以为用来累积流中的元素的List是最终结果，用不着进一步转换了，但它并不是UNORDERED，因为
+    用在有序流上的时候，希望顺序能够保留在得到的List中。最后，它是CONCURRENT的，但，仅仅在背后的数据源无序时才会并行处理。
+
+    public class ToListCollector<T> implements Collector<T, List<T>, List<T>> {
+        @Override
+        public Supplier<List<T>> supplier() {
+            //创建集合操作的起始点
+            return ArrayList::new;
+        }
+
+        @Override
+        public BiConsumer<List<T>, T> accumulator() {
+            //累积遍历过的项目，原位修改累加器
+            return List::add;
+        }
+
+        @Override
+        public Function<List<T>, List<T>> finisher() {
+            //恒等函数
+            return Function.identity();
+        }
+
+        @Override
+        public BinaryOperator<List<T>> combiner() {
+            return (l1, l2) -> {
+                l1.addAll(l2);//修改第一个累加器，将其与第二个累加器的内容合并
+                return l1;//返回修改后的第一个累加器
+            };
+        }
+
+        @Override
+        public Set<Characteristics> characteristics() {
+            //为收集器添加IDENTITY_FINISH和CONCURRENT标志
+            return Collections.unmodifiableSet(EnumSet.of(IDENTITY_FINISH, CONCURRENT));
+        }
+    }
+
+    自定义收集而不去实现Collector
+    menuStream.collect(
+        ArrayList::new,//供应源
+        List::add,//累加器
+        List::addAll//组合器
+    );

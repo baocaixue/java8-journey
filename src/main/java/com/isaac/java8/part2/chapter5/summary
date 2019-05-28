@@ -1,0 +1,12 @@
+小结（流可以简洁表达复杂的数据处理查询，可以透明地并行化）：
+    -Streams API可以表达复杂的数据处理查询。
+    -可以使用filter、distinct、skip、limit对流做筛选和切片
+    -可以使用map和flatMap提取或转换流中的元素
+    -可以使用findFirst和findAny方法查找流中的元素。可以用allMatch、noneMatch、anyMatch方法让流匹配给定的谓词
+    -这些方法都利用了短路：找到结果就立即停止计算；没有必要处理整个流
+    -可以使用reduce方法将流中所有元素迭代合并成一个结果，例如求和或找最大元素
+    -filter和map等操作是无状态的，它们并不存储任何状态。reduce等操作要存储状态才能计算出一个值。sorted和distinct等操作也要存储状态，因为它
+    们需要把流中的所有元素缓存起来才能返回一个新的流，这种操作称为有状态操作。
+    -流有三种基本的原始类型特化：IntStream、DoubleStream和LongStream。它们的操作也有相应的特化
+    -流不仅可以从集合创建，也可以从值、数组、问价以及iterate和generate等特定方法创建
+    -无限流是没有固定大小的流

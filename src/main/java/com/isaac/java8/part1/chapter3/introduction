@@ -1,0 +1,114 @@
+Lambda表达式
+{
+    Lambda管中窥豹
+    Lambda在哪使用、如何使用
+    环绕执行模式
+    函数式接口，类型判断
+    方法引用
+    Lambda复合
+}
+
+*Lambda管中窥豹
+    可以把Lambda表达式理解为简洁地表示可传递的匿名函数的一种方式：它没有名称，但它有参数列表、函数主体、返回类型，可能还有一个可以抛出的列表异
+  常。
+  -匿名
+  -函数——它是函数，因为Lambda函数不像方法那样属于某个特定的类。但和方法一样，Lambda有函数列表、函数主体、返回类型，还可能有可以抛出的异常列表
+  -传递——Lambda表达式可以作为参数传递给方法或存储在变量中
+  -简洁
+  Lambda解决了这个问题：它可以十分简明地传递代码。理论上说，在Java8之前做不了的事情，Lambda也做不了。但是，现在用不着再用匿名类写一堆笨重的
+  代码，来体验行为参数化的好处。
+
+ 语法：(parameters) -> expression 或 (parameters) -> {statements;}
+  Lambda没有return语句，因为已经隐含了return
+
+ Lambda Sample:
+ 布尔表达式          (List<String> list) -> list.isEmpty()
+ 创建对象           () -> new Apple(10)
+ 消费一个对象        (Apple a) -> {System.out.println(a.getWeight());}
+ 从一个对象中选择/抽取 (String s) -> s.length()
+ 组合两个值          (int a, int b) -> a * b
+ 比较两个对象         (Apple a1, Apple a2) -> a1.getWeight().compareTo(a2.getWeight())
+
+
+*在哪以及如何使用Lambda
+    可以在函数式接口上使用Lambda表达式。
+ -函数式接口@FunctionalInterface
+ public interface Predicate<T>{boolean test(T t);}
+    函数式接口就是只定义一个抽象方法接口。Lambda表达式允许你直接以内联的形式为函数接口的抽象方法提供实现，并把整个表达式作为函数式接口的实例（
+ 函数式接口一个具体实现的实例）。使用匿名内部类也可以完成同样的事情，只不过比较笨拙：需要提供一个实现，然后再直接内联将它实例化。
+ -函数描述符
+    函数式接口的抽象方法的签名基本上就是Lambda表达式的签名，将这种抽象方法叫做函数描述符
+ -Lambda实践：环绕执行模式
+ -函数式接口
+ java8的function包中的函数式接口
+----------------------------------------------------------------
+-Predicate
+public interface Predicate<T>{boolean test(T t);}
+-Consumer
+public interface Consumer<T>{void accept(T t);}
+-Function
+public interface Function<T, R>{R apply(T t);}
+-Supplier
+public interface Supplier<T>{T get();}
+将对象的信息映射到输出
+原始类型特化（避免装箱带来的开销）
+IntPredicate，LongPredicate， DoublePredicate
+IntConsumer， LongConsumer， DoubleConsumer
+IntFunction<R>， IntToDoubleFunction， IntToLongFunction
+LongFunction<R>，...
+DoubleFunction<R>，...
+...
+
+Lambda及函数式接口的例子
+布尔表达式 (List<String> list)->list.isEmpty Predicate<List<String>>
+创建对象 ()->new Apple(10) Supplier<Apple>
+消费对象 (Apple a)->System.out.println(a.getWeight()) Consumer<Apple>
+从对象中选择提取 (String s)->s.length() Function<String, Integer>或ToIntFunction<String>
+合并两个值 (int a, int b)->a*b IntBinaryOperator
+比较两个对象 (Apple a1, Apple a2)->a1.getWeight().compareTo(a2.getWeight()) Comparator<Apple>或BiFunction<Apple, Apple, Integer>
+或ToIntBiFunction<Apple, Apple>
+--------------------------------------------------------------
+
+*Lambda 类型检查、类型推断及限制
+ -类型检查
+ Lambda的类型是从使用Lambda的上下文推断出来的
+ -同样的Lambda，不同的函数式接口，只要方法签名兼容
+ -类型推断
+ -局部变量final
+ [
+    对局部变量的限制：
+    第一，实例变量和局部变量背后的实现有一个关键的不同。实例变量都存储再堆上，而局部变量则保存在栈上。如果Lambda可以直接访问局部变量，而且Lambda
+    是在一个线程中使用的，则使用Lambda的线程，可能会在分配该变量的线程将这个变量回收之后，去访问该变量。因此，Java在访问自由局部变量时，实际上
+    访问它的副本，而不是访问原始值。如果局部变量仅仅赋值一次那就没有什么区别了
+    第二，这一限制不鼓励使用改变外部变量的典型命令式编程模式，这种模式会阻碍很容易做到的并行处理
+ ]
+
+ [
+    闭包（closure）
+    用科学的说法来说，必报就是一个函数的实例，且它可以无限制地访问那个函数的非本地变量。例如，闭包可以作为参数传递给另一个函数。它也可以访问和
+    修改其作用域之外的变量。现在，Java8的Lambda和匿名类可以做类似闭包的事情：他们可以作为参数传递给方法，并且可以访问其作用域之外的变量。但有
+    一个限制：他们不能修改定义Lambda的方法的局部变量的内容。这些变量必须是隐式final的。可以认为Lambda是对值封闭的，而不是对变量封闭的。如前
+    所述，这种限制存在的原因在于局部变量保存在栈上，并且隐式表示他们仅限于其所在线程。如果允许捕获可改变的局部变量，就会引发造成线程不安全的新
+    的可能性
+ ]
+
+
+*方法引用
+    重复使用现有的方法定义，并且像Lambda一样传递
+
+    方法引用主要有三类:
+    1.指向静态方法的方法引用（Integer::parseInt）
+    2.指向任意类型实例方法的方法引用（String::length）
+    3.指向现有对象的实例方法（假设有一个局部变量expensiveTransaction,expensiveTransaction:getValue）
+
+    第二种方法，String::length引用的思想就是在引用一个对象的方法，而这个对象本身是Lambda的一个参数。例如，Lambda表达式(String s)->
+    s.toUpperCase可以写成String::toUpperCase。
+    第三种方法引用指的是，在Lambda中调用一个已经存在的外部对象中的方法。例如Lambda表达式()->expensiveTransaction.getValue()可以写作
+    expensiveTransaction::getValue。
+
+    针对构造函数、数组构造函数和父类调用的一些特殊形式的方法引用
+    -构造函数引用
+
+
+*复合Lambda表达式的有用方法
+    可以把多个简单的Lambda复合成复杂的表达式。
