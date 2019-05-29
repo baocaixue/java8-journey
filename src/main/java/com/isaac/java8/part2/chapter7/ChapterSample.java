@@ -1,16 +1,13 @@
 package com.isaac.java8.part2.chapter7;
 
-import com.isaac.java8.part2.chapter7.fork_join_sample.ForkJoinSumCalculator;
 import lombok.Data;
 import org.junit.Test;
 
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.*;
-import static java.util.stream.Collectors.*;
 
 public class ChapterSample {
     /**

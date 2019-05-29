@@ -1,4 +1,4 @@
-package com.isaac.java8.part2.chapter7.fork_join_sample;
+package com.isaac.java8.part2.chapter7;
 
 
 import java.util.concurrent.ForkJoinPool;
