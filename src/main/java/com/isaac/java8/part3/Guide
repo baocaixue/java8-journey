@@ -1,0 +1,8 @@
+第三部分 高效Java8编程
+    结合现代程序设计方法利用Java8的各种特性更有效地改善代码质量
+
+    第8章 利用Java8的新特性及一些技巧，改进现有代码。还有设计模式、重构、测试以及调试
+    第9章 默认方法，以兼容的方式使用默认方法改进API，一些使用的使用模式，以及有效地利用默认方法的规则
+    第10章 围绕java8全新引入的java.util.Optional类展开。java.util.Optional类可以设计出更优秀的API，同时降低空指针异常发生的几率
+    第11章 CompletableFuture类。通过CompletableFuture类，能以声明式方式描述复杂的异步计算，即并行Stream API的设计
+    第12章 新的Date和Time接口

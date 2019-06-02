@@ -1,0 +1,72 @@
+重构、测试和调试
+{
+    使用Lambda表达式重构代码
+    Lambda表达式对面向对象的设计模式的影响
+    Lambda表达式测试
+    调试使用Lambda表达式和Stream API的代码
+}
+
+*为改善可读性和灵活性重构代码
+    -改善代码的可读性
+        java8的新特性可以帮助提升代码的可读性：
+            。减少冗长代码，让代码更易于理解
+            。通过方法引用和Stream API，代码更加直观
+        三种简单的重构
+            。重构代码，用Lambda表达式取代匿名类
+            。用方法引用重构Lambda表达式
+            。用Stream API重构命令式的数据处理
+    -从匿名类到Lambda表达式的转换
+    -增加代码的灵活性
+        Lambda表达式有利于行为参数化，可以更从容面对需求的变化。
+            。采用函数接口
+                没有函数接口，就无法使用Lambda表达式，因此需要在代码中引入函数接口。但是在什么情况下使用呢？有两种通用的模式：有条件的延迟
+                执行和环绕执行。且一些基于对象的设计模式，比如策略模式或模板方法，这些在使用Lambda表达式后会更简介
+            。有条件的延迟执行
+                有这样的例子，控制语句被混杂在业务逻辑代码中。典型的情况包括进行安全性检查以及日志输出。比如，下面的这段代码，它使用了Java语
+                言内置的Logger类：
+                if (logger.isLoggable(Log.FINER)) {
+                    logger.finer("Problem: " + generateDiagnostic());
+                }
+                这段代码：
+                。日志的状态是通过isLoggable方法暴露给客户端代码
+                。要在每次输出一条日志之前都去查询日志器对象的状态
+                更好的方案是使用log方法，该方法在输出日志消息之前，会在内部检查日志对象是否已经设置为恰当的日志等级：
+                logger.log(Level.FINER, "Problem: " + generateDiagnostic());
+                这种方式不需要在代码中插入那些条件判断，于此同时日治其的状态也不再被暴露出去。不过，这段代码依旧有问题，日志消息的输出与否每
+                次都要判断，即使传了参数，不开启日志。
+
+                这个时候，就可以用Lambda表达式了，需要做到仅仅是延迟消息构造，如此一来，日志就只会在某些特定的情况下才开启。
+                public void log (Level level, Supplier<String> msgSupplier)
+                可以这样调用：
+                logger.log(Level.FINER, () -> "Problem: " + generateDiagnostic());
+                如果日志的级别设置恰当，log方法会在内部执行作为参数传递进来的Lambda表达式
+                public void log(Level level, Supplier<String> msgSupplier) {
+                    if(logger.isLoggable(level)) {
+                       log(level, msgSupplier.get())
+                    }
+                }
+
+                从中学到，如果需要频繁地从客户端代码去查询一个对象的状态，只是为了传递参数、调用对象的一个方法，那么可以考虑实现一个新的方法，
+                以Lambda或方法表达式作为参数，新方法在检查完该对象的状态之后才调用原来的方法。代码会因此更易读，封装性更好。
+
+            。环绕执行
+                如果发现业务代码虽然千差万别，但是它们都有同样的准备和清理阶段，这时，就完全可以将这部分代码用Lambda实现。这种方式的好处是可
+                以重用准备和清理阶段的逻辑，减少重复冗余的代码。下面是在处理文件时可以使用不同的Lambda进行参数化
+
+                String oneLine = processFile((BufferedReader b) -> b.readLine());
+                String twoLines = processFile((BufferedReader b) -> b.readLine() + b.readLine());
+
+                public static String processFile(BufferedReaderProcessor p) throws IOException {
+                    try{
+                        BufferedReader br = new BufferedReader(new FIleReader("path/xxx"));
+                        return p.process(br);
+                    }
+                }
+
+                public interface BufferedReaderProcessor {
+                    String process(BufferedReader b) throws IOException;
+                }
+
+
+
+*使用Lambda重构面向对象的涉及模式
