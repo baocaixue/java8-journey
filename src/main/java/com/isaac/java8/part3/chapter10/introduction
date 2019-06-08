@@ -1,0 +1,33 @@
+用Optional取代null
+{
+    null引用引发的问题，为什么要避免null引用
+    从null到Optional：以null安全的方式重写域模型
+    去除代码中对null的检查
+    读取Optional中可能值的几种方法
+    对可能缺失值的再思考
+}
+
+*其他语言中null的替代品
+    Groovy，通过引入安全导航符（标记为?）可以安全访问可能为null的变量。
+    def carInsuranceName = person?.car?.insurance?.name
+    这段代码的表述相当清晰。person对象可能没有car对象，试图通过赋一个null给Person对象的car引用，对这种可能性建模。类似的，car也可能没有
+    insurance。Groovy的安全导航操作符能够避免在访问这些可能为null引用的变量时抛出NullPointerException，在调用链中的变量遭遇null时将null
+    引用沿着调用链传递下去，返回一个null。
+
+    另一些函数式语言，比如Haskell、Scala，试图从另一个角度处理这些问题。Haskell中包含了一个Maybe类型，它本质上是对optional值的封装。Maybe
+    类型的变量可以是指定类型的值，也可以什么都不是。但它并没有null引用的概念。Scala有类似的数据结构，名字叫Option[T]，它既可以包含类型为的
+    变量，也可以不包含该变量。要使用这种类型，必须显式地调用Option类型的available操作，检查该变量是否有值，而这其实也是一种变相的“null检查”
+
+    Java8从“optional值”的想法中吸取了灵感，引入了一个名为java.util.Optional<T>的新的类。
+
+*默认行为及解引用Optional对象
+    -get()是这些方法中最简单但又最不安全的方法。如果变量存在，它直接返回封装的变量值，否则就抛出NoSuchElementException异常。所以，除非非常
+    确定Optional变量一定包含值，否则使用这个方法是相当糟糕的。此外，这种方式即便相对于嵌套式的null检查，也并未体现多大的改进。
+    -orElse(T other)允许Optional对象不包含值时提供一个默认值
+    -orElseGet(Supplier<? extends T> other)是orElse方法的延迟调用版，Supplier方法只有再Optional对象不含值时才执行调用。如果创建默认
+    值是件耗时费力的工作，应该考虑采用这种方式（借此提升程序性能），或者需要非常确定某个方法尽在Optional为空时才进行调用，也可以考虑该方式（这
+    种情况有严格的限制条件）
+    -orElseThrow(Supplier<? extends X> exceptionSupplier)和get方法非常类似，它们遭遇Optional对象为空时都会抛出一个异常，但是使用
+    orElseThrow可以定制希望抛出的异常类型
+    -ifPresent(Consumer<? super T>)能在变量值存在时执行一个作为参数传入的方法，否则就不进行任何操作。
+    Optional类和Stream接口的相似之处，远不止map和flatMap方法。还有第三个方法filter，它的行为在两种类型之间也极其相似。
