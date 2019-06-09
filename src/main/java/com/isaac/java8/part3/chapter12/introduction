@@ -1,0 +1,40 @@
+新的日期和时间API
+{
+    为什么Java8中要引入新的日期和时间库
+    同时为人和机器表示日期和时间
+    定义时间的度量
+    操纵、格式化及解析日期
+    处理不同的时区和历法
+}
+
+*旧的日期API存在的问题
+    在Java1.0中，对日期和时间的支持只能依赖java.util.Date类。这个类无法表示日期，只能以毫秒的精度表示时间。更糟的是它的易用性，比如：年份起始选择的是1900年，月份的起始从0开始。这意味着想用
+   Date表示Java8的发布日期，即2014年3月28日，需创建这样的Date实例：
+    Date date = new Date(114, 2, 18);--->Tue Mar 18 00:00:00 CET 2014
+    看起来并不直观，此外，甚至Date类的toString方法返回的字符串也容易误导人。
+
+    在Java1.1中，Date类的很多方法被废弃了，取而代之的是java.util.Calendar类。然而Calendar类也有类似的问题和缺陷。而且，让人更加困惑到底使用哪个类。此外，有的特性只在某一个类有提供，比如以
+   语言无关方式格式化和解析日期或时间的DateFormat方法就只在Date类里有。
+    最后，Date和Calendar类都是可变的。
+
+*LocalDate、LocalTime、Instant、Duration和Period(java.time包)
+
+*TemporalAdjuster类中的工厂方法
+    dayOfWeekInMonth        同一个月中每一周的第几天,两个参数：ordinal，dayOfWeek——该月的第ordinal个dayOfWeek
+    firstDayOfMonth         当月的第一天
+    firstDayOfNextMonth     下个月的第一天
+    firstDayOfYear          当年第一天
+    firstDayOfNextYear      明年第一天
+    firstInMonth            同月中第一个符合星期几要求的值
+    lastDayOfMonth          当月最后一天
+    lastDayOfNextMonth      下月最后一天
+    lastDayOfYear           当年最后一天
+    lastDayOfNextYear       明年最后一天
+    lastInMonth             同月中最后一个符合星期几要求的值
+    next/previous           将日期向前/后调整，第一个符合星期几要求的日期
+    nextOrSame/previousOrSame   如果该日期已经符合要求，直接返回该对象
+
+*时区和历法
+    时区是按照一定的规则将区域划分成的标准时间相同的区间。在ZoneRules这个类中包含了40个这样的实例。可以简单的通过调用ZoneId的getRules()得到指定时区的规则。每个特定的ZoneId对象都由一个地区
+   Id标识，地区Id都为“{区域}/{城市}”的格式，这些地区集合的设定都由因特网编号分配机构（IANA）的时区数据库提供。可以通过java8的新方法toZoneId将一个老的时区对象转换为ZoneId:
+   ZoneId zoneId = TimeZone.getDefault().toZoneId();
